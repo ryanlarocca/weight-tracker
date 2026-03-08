@@ -2,7 +2,7 @@
   "name": "Weight Tracker",
   "short_name": "Weight",
   "description": "Daily weight log with 7-day and 30-day moving averages",
-  "start_url": "/",
+  "start_url": "/weight-tracker/",
   "display": "standalone",
   "background_color": "#0f0f13",
   "theme_color": "#6c63ff",
