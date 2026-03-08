@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#1a1a24"/>
+  
+  <!-- Barbell left side -->
+  <rect x="30" y="220" width="110" height="72" rx="12" fill="#6c63ff"/>
+  <rect x="60" y="195" width="50" height="122" rx="8" fill="#8b84ff"/>
+  
+  <!-- Barbell right side -->
+  <rect x="372" y="220" width="110" height="72" rx="12" fill="#6c63ff"/>
+  <rect x="402" y="195" width="50" height="122" rx="8" fill="#8b84ff"/>
+  
+  <!-- Barbell bar -->
+  <rect x="130" y="242" width="252" height="28" rx="8" fill="#4a4a6a"/>
+  
+  <!-- Body torso -->
+  <ellipse cx="256" cy="310" rx="62" ry="72" fill="#f4c07a"/>
+  
+  <!-- Shorts -->
+  <ellipse cx="256" cy="368" rx="62" ry="30" fill="#6c63ff"/>
+  <rect x="194" y="368" width="124" height="30" fill="#6c63ff"/>
+  
+  <!-- Left arm flexed -->
+  <ellipse cx="162" cy="255" rx="34" ry="26" fill="#f4c07a"/>
+  <ellipse cx="140" cy="235" rx="22" ry="32" fill="#f4c07a"/>
+  <!-- Bicep peak -->
+  <ellipse cx="148" cy="218" rx="18" ry="22" fill="#e8a855"/>
+  
+  <!-- Right arm flexed -->
+  <ellipse cx="350" cy="255" rx="34" ry="26" fill="#f4c07a"/>
+  <ellipse cx="372" cy="235" rx="22" ry="32" fill="#f4c07a"/>
+  <!-- Bicep peak -->
+  <ellipse cx="364" cy="218" rx="18" ry="22" fill="#e8a855"/>
+  
+  <!-- Neck -->
+  <rect x="236" y="230" width="40" height="35" rx="8" fill="#f4c07a"/>
+  
+  <!-- Head -->
+  <ellipse cx="256" cy="195" rx="52" ry="55" fill="#f4c07a"/>
+  
+  <!-- Hair -->
+  <ellipse cx="256" cy="148" rx="52" ry="22" fill="#3d2b1f"/>
+  <rect x="204" y="148" width="104" height="20" fill="#3d2b1f"/>
+  
+  <!-- Eyes -->
+  <ellipse cx="238" cy="190" rx="8" ry="9" fill="white"/>
+  <ellipse cx="274" cy="190" rx="8" ry="9" fill="white"/>
+  <ellipse cx="240" cy="192" rx="5" ry="6" fill="#222"/>
+  <ellipse cx="276" cy="192" rx="5" ry="6" fill="#222"/>
+  
+  <!-- Smile -->
+  <path d="M238 213 Q256 228 274 213" stroke="#3d2b1f" stroke-width="4" fill="none" stroke-linecap="round"/>
+  
+  <!-- Abs lines -->
+  <path d="M240 310 Q256 308 272 310" stroke="#e8a855" stroke-width="3" fill="none"/>
+  <path d="M238 330 Q256 328 274 330" stroke="#e8a855" stroke-width="3" fill="none"/>
+  <line x1="256" y1="290" x2="256" y2="360" stroke="#e8a855" stroke-width="2.5"/>
+  
+  <!-- Chest line -->
+  <path d="M210 270 Q256 285 302 270" stroke="#e8a855" stroke-width="3" fill="none"/>
+</svg>

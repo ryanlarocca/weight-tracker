@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Weight Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Weight" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --card: #1a1a24;
+      --card2: #22222f;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --green: #43e97b;
+      --red: #ff6b6b;
+      --yellow: #ffd166;
+      --text: #f0f0f5;
+      --muted: #8888aa;
+      --border: #2e2e42;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 20px 16px 40px;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      letter-spacing: -0.5px;
+    }
+    .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+
+    /* Stats grid */
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      border: 1px solid var(--border);
+    }
+    .stat.wide { grid-column: 1 / -1; }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+    .stat-value { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
+    .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .up { color: var(--red); }
+    .down { color: var(--green); }
+    .flat { color: var(--yellow); }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* Chart */
+    .chart-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 20px 16px 16px;
+      margin-bottom: 20px;
+    }
+    .chart-card h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: var(--muted); }
+    .chart-wrap { position: relative; height: 200px; }
+
+    /* Input card */
+    .input-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .input-card h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .field { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .field label { font-size: 12px; color: var(--muted); }
+    .field input {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 16px;
+      padding: 12px 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    .field input:focus { border-color: var(--accent); }
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn:active { opacity: 0.8; transform: scale(0.98); }
+    .btn-sm {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* Goal */
+    .goal-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+    .goal-row .field { flex: 1; }
+
+    /* History */
+    .history-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 20px;
+    }
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .history-header h2 { font-size: 15px; font-weight: 600; }
+    .history-list { display: flex; flex-direction: column; gap: 2px; }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 4px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-date { color: var(--muted); }
+    .history-right { display: flex; align-items: center; gap: 12px; }
+    .history-weight { font-weight: 600; font-size: 16px; }
+    .history-diff { font-size: 12px; }
+    .delete-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: color 0.2s;
+    }
+    .delete-btn:hover { color: var(--red); }
+    .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 20px 0; }
+
+    /* Streak badge */
+    .streak {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #ff9f43, #ffd166);
+      color: #1a1a24;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--green);
+      color: #0f0f13;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 999;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Weekly trend */
+    .weekly-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .week-stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      text-align: center;
+    }
+    .week-stat .wlabel { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+    .week-stat .wval { font-size: 22px; font-weight: 700; }
+    .week-stat .wsub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  </style>
+</head>
+<body>
+
+<h1>⚖️ Weight Tracker</h1>
+<p class="subtitle">Daily log · 7-day average · Weekly trends</p>
+
+<div id="streakBadge" style="display:none" class="streak">🔥 <span id="streakNum"></span> day streak</div>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat">
+    <div class="stat-label">Current</div>
+    <div class="stat-value" id="statCurrent">—</div>
+    <div class="stat-sub">lbs</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">7-Day Avg</div>
+    <div class="stat-value" id="stat7day">—</div>
+    <div class="stat-sub">lbs</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Since Start</div>
+    <div class="stat-value" id="statTotal">—</div>
+    <div class="stat-sub" id="statTotalSub"></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Rate</div>
+    <div class="stat-value" id="statRate">—</div>
+    <div class="stat-sub">lbs / week</div>
+  </div>
+  <div class="stat wide" id="goalStatCard" style="display:none">
+    <div class="stat-label">Goal Progress</div>
+    <div class="stat-value" id="statGoal">—</div>
+    <div class="stat-sub" id="statGoalSub"></div>
+  </div>
+</div>
+
+<!-- Weekly trend -->
+<div class="weekly-grid">
+  <div class="week-stat">
+    <div class="wlabel">This Week</div>
+    <div class="wval" id="weekThis">—</div>
+    <div class="wsub">avg lbs</div>
+  </div>
+  <div class="week-stat">
+    <div class="wlabel">Last Week</div>
+    <div class="wval" id="weekLast">—</div>
+    <div class="wsub">avg lbs</div>
+  </div>
+  <div class="week-stat">
+    <div class="wlabel">Trend</div>
+    <div class="wval" id="weekTrend">—</div>
+    <div class="wsub" id="weekTrendSub"></div>
+  </div>
+</div>
+
+<!-- Chart -->
+<div class="chart-card">
+  <h2>WEIGHT HISTORY</h2>
+  <div class="tabs">
+    <button class="tab" onclick="setRange(7)" id="tab7">7D</button>
+    <button class="tab active" onclick="setRange(14)" id="tab14">14D</button>
+    <button class="tab" onclick="setRange(30)" id="tab30">30D</button>
+    <button class="tab" onclick="setRange(90)" id="tab90">3M</button>
+    <button class="tab" onclick="setRange(180)" id="tab180">6M</button>
+    <button class="tab" onclick="setRange(365)" id="tab365">1Y</button>
+    <button class="tab" onclick="setRange(0)" id="tab0">All</button>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="weightChart"></canvas>
+  </div>
+</div>
+
+<!-- Log Entry -->
+<div class="input-card">
+  <h2>Log Weight</h2>
+  <div class="input-row">
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="inputDate" />
+    </div>
+    <div class="field">
+      <label>Weight (lbs)</label>
+      <input type="number" id="inputWeight" placeholder="180.0" step="0.1" min="50" max="500" />
+    </div>
+    <button class="btn" onclick="logWeight()">Log</button>
+  </div>
+  <div class="goal-row">
+    <div class="field">
+      <label>Goal Weight (lbs)</label>
+      <input type="number" id="inputGoal" placeholder="e.g. 175" step="0.5" min="50" max="500" />
+    </div>
+    <button class="btn" onclick="setGoal()">Set Goal</button>
+  </div>
+</div>
+
+<!-- History -->
+<div class="history-card">
+  <div class="history-header">
+    <h2>LOG HISTORY</h2>
+    <button class="btn-sm" onclick="exportCSV()">Export CSV</button>
+  </div>
+  <div class="history-list" id="historyList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORE_KEY = 'wt_entries_v1';
+const GOAL_KEY = 'wt_goal_v1';
+
+let chart = null;
+let activeRange = 14; // default 14 days
+
+function setRange(days) {
+  activeRange = days;
+  // Update tab styles
+  [7,14,30,90,180,365,0].forEach(d => {
+    const el = document.getElementById('tab' + d);
+    if (el) el.classList.toggle('active', d === days);
+  });
+  render();
+}
+
+function getEntries() {
+  return JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+}
+function saveEntries(entries) {
+  localStorage.setItem(STORE_KEY, JSON.stringify(entries));
+}
+function getGoal() {
+  const g = localStorage.getItem(GOAL_KEY);
+  return g ? parseFloat(g) : null;
+}
+function saveGoal(g) {
+  localStorage.setItem(GOAL_KEY, g.toString());
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function formatDate(d) {
+  const [y, m, day] = d.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[parseInt(m)-1]} ${parseInt(day)}`;
+}
+
+function movingAverage(entries, window) {
+  return entries.map((e, i) => {
+    const slice = entries.slice(Math.max(0, i - window + 1), i + 1);
+    const avg = slice.reduce((s, x) => s + x.weight, 0) / slice.length;
+    return Math.round(avg * 10) / 10;
+  });
+}
+
+function calcStreak(entries) {
+  if (!entries.length) return 0;
+  const sorted = [...entries].sort((a,b) => b.date.localeCompare(a.date));
+  let streak = 0;
+  let current = today();
+  for (const e of sorted) {
+    if (e.date === current) {
+      streak++;
+      const d = new Date(current);
+      d.setDate(d.getDate() - 1);
+      current = d.toISOString().split('T')[0];
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+function calcWeeklyAvg(entries, weeksAgo) {
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(start.getDate() - (weeksAgo * 7) - now.getDay());
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const s = start.toISOString().split('T')[0];
+  const en = end.toISOString().split('T')[0];
+  const filtered = entries.filter(e => e.date >= s && e.date <= en);
+  if (!filtered.length) return null;
+  return Math.round(filtered.reduce((a,b) => a + b.weight, 0) / filtered.length * 10) / 10;
+}
+
+function render() {
+  let entries = getEntries().sort((a,b) => a.date.localeCompare(b.date));
+  const goal = getGoal();
+
+  // Streak
+  const streak = calcStreak(entries);
+  const streakBadge = document.getElementById('streakBadge');
+  if (streak >= 2) {
+    streakBadge.style.display = 'inline-flex';
+    document.getElementById('streakNum').textContent = streak;
+  } else {
+    streakBadge.style.display = 'none';
+  }
+
+  // Stats
+  if (entries.length > 0) {
+    const latest = entries[entries.length - 1].weight;
+    const first = entries[0].weight;
+    const last7 = entries.slice(-7);
+    const avg7 = Math.round(last7.reduce((s,e) => s + e.weight, 0) / last7.length * 10) / 10;
+    const totalChange = Math.round((latest - first) * 10) / 10;
+
+    document.getElementById('statCurrent').textContent = latest.toFixed(1);
+    document.getElementById('stat7day').textContent = avg7.toFixed(1);
+
+    const totalEl = document.getElementById('statTotal');
+    totalEl.textContent = (totalChange >= 0 ? '+' : '') + totalChange.toFixed(1);
+    totalEl.className = 'stat-value ' + (totalChange < 0 ? 'down' : totalChange > 0 ? 'up' : 'flat');
+    document.getElementById('statTotalSub').textContent = 'lbs from start';
+
+    // Rate (lbs/week)
+    if (entries.length >= 2) {
+      const days = (new Date(entries[entries.length-1].date) - new Date(entries[0].date)) / 86400000;
+      const weeks = days / 7 || 1;
+      const rate = (latest - first) / weeks;
+      const rateEl = document.getElementById('statRate');
+      rateEl.textContent = (rate >= 0 ? '+' : '') + rate.toFixed(2);
+      rateEl.className = 'stat-value ' + (rate < 0 ? 'down' : rate > 0 ? 'up' : 'flat');
+    }
+
+    // Goal
+    if (goal) {
+      const goalCard = document.getElementById('goalStatCard');
+      goalCard.style.display = 'block';
+      const remaining = Math.round((latest - goal) * 10) / 10;
+      const goalEl = document.getElementById('statGoal');
+      goalEl.textContent = (remaining > 0 ? remaining.toFixed(1) + ' lbs to go' : '🎉 Goal reached!');
+      goalEl.className = 'stat-value ' + (remaining <= 0 ? 'down' : 'flat');
+
+      if (entries.length >= 2) {
+        const days = (new Date(entries[entries.length-1].date) - new Date(entries[0].date)) / 86400000;
+        const weeks = days / 7 || 1;
+        const rate = (latest - first) / weeks;
+        if (rate < 0 && remaining > 0) {
+          const weeksLeft = remaining / Math.abs(rate);
+          const targetDate = new Date();
+          targetDate.setDate(targetDate.getDate() + Math.round(weeksLeft * 7));
+          document.getElementById('statGoalSub').textContent =
+            'Projected: ' + targetDate.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+        } else if (remaining <= 0) {
+          document.getElementById('statGoalSub').textContent = 'Goal: ' + goal + ' lbs';
+        } else {
+          document.getElementById('statGoalSub').textContent = 'Goal: ' + goal + ' lbs';
+        }
+      }
+    }
+  } else {
+    ['statCurrent','stat7day','statTotal','statRate'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+    });
+  }
+
+  // Weekly trend
+  const thisWeek = calcWeeklyAvg(entries, 0);
+  const lastWeek = calcWeeklyAvg(entries, 1);
+  document.getElementById('weekThis').textContent = thisWeek !== null ? thisWeek.toFixed(1) : '—';
+  document.getElementById('weekLast').textContent = lastWeek !== null ? lastWeek.toFixed(1) : '—';
+  if (thisWeek !== null && lastWeek !== null) {
+    const diff = Math.round((thisWeek - lastWeek) * 10) / 10;
+    const trendEl = document.getElementById('weekTrend');
+    const subEl = document.getElementById('weekTrendSub');
+    if (diff < -0.1) {
+      trendEl.textContent = '↓';
+      trendEl.className = 'wval down';
+      subEl.textContent = diff.toFixed(1) + ' lbs';
+    } else if (diff > 0.1) {
+      trendEl.textContent = '↑';
+      trendEl.className = 'wval up';
+      subEl.textContent = '+' + diff.toFixed(1) + ' lbs';
+    } else {
+      trendEl.textContent = '→';
+      trendEl.className = 'wval flat';
+      subEl.textContent = 'holding';
+    }
+  } else {
+    document.getElementById('weekTrend').textContent = '—';
+    document.getElementById('weekTrendSub').textContent = '';
+  }
+
+  // Chart — filter by active range
+  let chartEntries = entries;
+  if (activeRange > 0) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - activeRange);
+    const cutoffStr = cutoff.toISOString().split('T')[0];
+    chartEntries = entries.filter(e => e.date >= cutoffStr);
+  }
+  const labels = chartEntries.map(e => formatDate(e.date));
+  const weights = chartEntries.map(e => e.weight);
+  const avg = movingAverage(chartEntries, 7);
+  const avg30 = movingAverage(chartEntries, 30);
+
+  const ctx = document.getElementById('weightChart').getContext('2d');
+  if (chart) chart.destroy();
+
+  const goalLine = goal ? chartEntries.map(() => goal) : null;
+
+  const datasets = [
+    {
+      label: 'Weight',
+      data: weights,
+      borderColor: 'rgba(108,99,255,0.8)',
+      backgroundColor: 'rgba(108,99,255,0.08)',
+      pointBackgroundColor: 'rgba(108,99,255,1)',
+      pointRadius: entries.length > 30 ? 2 : 4,
+      pointHoverRadius: 6,
+      tension: 0.3,
+      fill: false,
+      borderWidth: 2,
+    },
+    {
+      label: '7-Day Avg',
+      data: avg,
+      borderColor: 'rgba(67,233,123,0.9)',
+      backgroundColor: 'transparent',
+      pointRadius: 0,
+      tension: 0.4,
+      borderWidth: 2.5,
+      borderDash: [],
+    },
+    {
+      label: '30-Day Avg',
+      data: avg30,
+      borderColor: 'rgba(255,165,102,0.9)',
+      backgroundColor: 'transparent',
+      pointRadius: 0,
+      tension: 0.4,
+      borderWidth: 2.5,
+      borderDash: [],
+    }
+  ];
+
+  if (goalLine) {
+    datasets.push({
+      label: 'Goal',
+      data: goalLine,
+      borderColor: 'rgba(255,214,102,0.5)',
+      pointRadius: 0,
+      borderWidth: 1.5,
+      borderDash: [6,4],
+      tension: 0,
+    });
+  }
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: { color: '#8888aa', font: { size: 11 }, boxWidth: 16, padding: 12 }
+        },
+        tooltip: {
+          backgroundColor: '#22222f',
+          borderColor: '#2e2e42',
+          borderWidth: 1,
+          titleColor: '#8888aa',
+          bodyColor: '#f0f0f5',
+          padding: 10,
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#8888aa', font: { size: 10 }, maxTicksLimit: 8 },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          border: { color: 'transparent' }
+        },
+        y: {
+          ticks: { color: '#8888aa', font: { size: 11 } },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          border: { color: 'transparent' },
+        }
+      }
+    }
+  });
+
+  // History list (newest first, last 30)
+  const histEl = document.getElementById('historyList');
+  const sorted = [...entries].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 30);
+  if (!sorted.length) {
+    histEl.innerHTML = '<div class="empty">No entries yet — log your first weight above</div>';
+    return;
+  }
+  histEl.innerHTML = sorted.map((e, i) => {
+    const prev = sorted[i+1];
+    let diffHtml = '';
+    if (prev) {
+      const d = Math.round((e.weight - prev.weight) * 10) / 10;
+      const cls = d < 0 ? 'down' : d > 0 ? 'up' : 'flat';
+      diffHtml = `<span class="history-diff ${cls}">${d >= 0 ? '+' : ''}${d.toFixed(1)}</span>`;
+    }
+    return `
+      <div class="history-item">
+        <span class="history-date">${formatDate(e.date)}</span>
+        <div class="history-right">
+          ${diffHtml}
+          <span class="history-weight">${e.weight.toFixed(1)}</span>
+          <button class="delete-btn" onclick="deleteEntry('${e.date}')" title="Delete">×</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function logWeight() {
+  const dateVal = document.getElementById('inputDate').value;
+  const weightVal = parseFloat(document.getElementById('inputWeight').value);
+  if (!dateVal || isNaN(weightVal) || weightVal < 50 || weightVal > 500) {
+    showToast('Enter a valid weight!', '#ff6b6b');
+    return;
+  }
+  let entries = getEntries();
+  const existing = entries.findIndex(e => e.date === dateVal);
+  if (existing >= 0) {
+    entries[existing].weight = weightVal;
+  } else {
+    entries.push({ date: dateVal, weight: weightVal });
+  }
+  entries.sort((a,b) => a.date.localeCompare(b.date));
+  saveEntries(entries);
+  document.getElementById('inputWeight').value = '';
+  render();
+  showToast('✓ Logged ' + weightVal.toFixed(1) + ' lbs');
+}
+
+function deleteEntry(date) {
+  if (!confirm('Delete entry for ' + formatDate(date) + '?')) return;
+  let entries = getEntries().filter(e => e.date !== date);
+  saveEntries(entries);
+  render();
+}
+
+function setGoal() {
+  const g = parseFloat(document.getElementById('inputGoal').value);
+  if (isNaN(g) || g < 50 || g > 500) {
+    showToast('Enter a valid goal weight!', '#ff6b6b');
+    return;
+  }
+  saveGoal(g);
+  document.getElementById('inputGoal').value = '';
+  render();
+  showToast('🎯 Goal set: ' + g + ' lbs');
+}
+
+function exportCSV() {
+  const entries = getEntries().sort((a,b) => a.date.localeCompare(b.date));
+  if (!entries.length) { showToast('No data to export', '#ff6b6b'); return; }
+  const rows = ['Date,Weight (lbs)', ...entries.map(e => `${e.date},${e.weight}`)].join('\n');
+  const blob = new Blob([rows], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'weight-log.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color || 'var(--green)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const active = document.activeElement;
+    if (active && (active.id === 'inputWeight' || active.id === 'inputDate')) logWeight();
+    if (active && active.id === 'inputGoal') setGoal();
+  }
+});
+
+// Seed historical data on first load
+const SEED_KEY = 'wt_seeded_v3';
+if (!localStorage.getItem(SEED_KEY)) {
+  const seed = [{"date":"2025-07-28","weight":199.0},{"date":"2025-07-29","weight":199.2},{"date":"2025-07-31","weight":197.6},{"date":"2025-08-01","weight":196.8},{"date":"2025-08-02","weight":197.2},{"date":"2025-08-03","weight":196.6},{"date":"2025-08-04","weight":198.4},{"date":"2025-08-07","weight":196.2},{"date":"2025-08-08","weight":194.8},{"date":"2025-08-09","weight":194.6},{"date":"2025-08-10","weight":196.6},{"date":"2025-08-11","weight":194.4},{"date":"2025-08-12","weight":193.6},{"date":"2025-08-13","weight":194.4},{"date":"2025-08-14","weight":194.0},{"date":"2025-08-15","weight":196.3},{"date":"2025-08-16","weight":194.4},{"date":"2025-08-17","weight":192.0},{"date":"2025-08-18","weight":192.8},{"date":"2025-08-19","weight":192.8},{"date":"2025-08-20","weight":192.8},{"date":"2025-08-21","weight":192.2},{"date":"2025-08-22","weight":191.0},{"date":"2025-08-23","weight":192.6},{"date":"2025-08-24","weight":194.4},{"date":"2025-08-25","weight":192.2},{"date":"2025-08-26","weight":195.0},{"date":"2025-08-27","weight":195.6},{"date":"2025-08-28","weight":195.0},{"date":"2025-08-29","weight":195.8},{"date":"2025-08-30","weight":195.0},{"date":"2025-08-31","weight":195.8},{"date":"2025-09-01","weight":196.4},{"date":"2025-09-02","weight":195.4},{"date":"2025-09-03","weight":195.0},{"date":"2025-09-04","weight":195.0},{"date":"2025-09-05","weight":198.4},{"date":"2025-09-06","weight":198.4},{"date":"2025-09-07","weight":195.6},{"date":"2025-09-12","weight":191.0},{"date":"2025-09-14","weight":193.0},{"date":"2025-09-15","weight":193.4},{"date":"2025-09-16","weight":193.6},{"date":"2025-09-17","weight":195.4},{"date":"2025-09-18","weight":196.4},{"date":"2025-09-19","weight":196.4},{"date":"2025-09-20","weight":198.3},{"date":"2025-09-21","weight":197.3},{"date":"2025-09-22","weight":198.0},{"date":"2025-09-23","weight":196.8},{"date":"2025-09-24","weight":195.8},{"date":"2025-09-25","weight":194.8},{"date":"2025-09-26","weight":196.0},{"date":"2025-09-27","weight":198.4},{"date":"2025-09-28","weight":195.4},{"date":"2025-09-29","weight":196.4},{"date":"2025-09-30","weight":197.4},{"date":"2025-10-01","weight":198.4},{"date":"2025-10-02","weight":199.2},{"date":"2025-10-03","weight":197.6},{"date":"2025-10-04","weight":197.8},{"date":"2025-10-06","weight":197.4},{"date":"2025-10-07","weight":196.4},{"date":"2025-10-08","weight":196.0},{"date":"2025-10-09","weight":197.2},{"date":"2025-10-10","weight":196.4},{"date":"2025-10-11","weight":197.4},{"date":"2025-10-12","weight":196.0},{"date":"2025-10-13","weight":196.8},{"date":"2025-10-14","weight":196.2},{"date":"2025-10-15","weight":195.6},{"date":"2025-10-16","weight":196.2},{"date":"2025-10-17","weight":196.0},{"date":"2025-10-18","weight":195.5},{"date":"2025-10-20","weight":195.0},{"date":"2025-10-21","weight":197.0},{"date":"2025-10-22","weight":195.2},{"date":"2025-10-23","weight":194.8},{"date":"2025-10-24","weight":194.2},{"date":"2025-10-25","weight":194.8},{"date":"2025-10-26","weight":194.2},{"date":"2025-10-27","weight":193.0},{"date":"2025-10-28","weight":194.8},{"date":"2025-10-29","weight":195.4},{"date":"2025-10-30","weight":192.8},{"date":"2025-11-02","weight":195.0},{"date":"2025-11-03","weight":195.0},{"date":"2025-11-04","weight":193.4},{"date":"2025-11-05","weight":192.6},{"date":"2025-11-06","weight":192.8},{"date":"2025-11-07","weight":193.8},{"date":"2025-11-08","weight":194.0},{"date":"2025-11-09","weight":194.0},{"date":"2025-11-10","weight":193.8},{"date":"2025-11-11","weight":193.6},{"date":"2025-11-12","weight":193.4},{"date":"2025-11-13","weight":192.2},{"date":"2025-11-14","weight":192.0},{"date":"2025-11-15","weight":192.4},{"date":"2025-11-16","weight":193.0},{"date":"2025-11-17","weight":192.8},{"date":"2025-11-18","weight":193.2},{"date":"2025-11-19","weight":193.8},{"date":"2025-11-20","weight":191.6},{"date":"2025-11-22","weight":193.0},{"date":"2025-11-23","weight":194.0},{"date":"2025-11-24","weight":190.2},{"date":"2025-11-25","weight":191.0},{"date":"2025-11-29","weight":192.6},{"date":"2025-11-30","weight":192.0},{"date":"2025-12-01","weight":192.0},{"date":"2025-12-02","weight":190.6},{"date":"2025-12-03","weight":194.6},{"date":"2025-12-04","weight":192.4},{"date":"2025-12-05","weight":190.8},{"date":"2025-12-06","weight":190.8},{"date":"2025-12-07","weight":193.0},{"date":"2025-12-08","weight":190.4},{"date":"2025-12-09","weight":189.8},{"date":"2025-12-10","weight":191.6},{"date":"2025-12-11","weight":189.4},{"date":"2025-12-12","weight":190.6},{"date":"2025-12-13","weight":190.8},{"date":"2025-12-14","weight":192.4},{"date":"2025-12-15","weight":191.6},{"date":"2025-12-16","weight":187.6},{"date":"2025-12-17","weight":189.2},{"date":"2025-12-18","weight":189.8},{"date":"2025-12-19","weight":189.4},{"date":"2025-12-20","weight":189.4},{"date":"2025-12-21","weight":188.4},{"date":"2025-12-22","weight":189.4},{"date":"2025-12-23","weight":188.8},{"date":"2025-12-24","weight":188.8},{"date":"2025-12-26","weight":188.8},{"date":"2025-12-27","weight":189.4},{"date":"2025-12-28","weight":189.4},{"date":"2025-12-29","weight":188.0},{"date":"2025-12-30","weight":188.8},{"date":"2025-12-31","weight":187.6},{"date":"2026-01-01","weight":186.2},{"date":"2026-01-02","weight":186.6},{"date":"2026-01-03","weight":187.6},{"date":"2026-01-04","weight":186.2},{"date":"2026-01-05","weight":186.2},{"date":"2026-01-06","weight":187.0},{"date":"2026-01-07","weight":185.6},{"date":"2026-01-09","weight":186.6},{"date":"2026-01-10","weight":187.0},{"date":"2026-01-11","weight":188.2},{"date":"2026-01-12","weight":187.0},{"date":"2026-01-13","weight":188.8},{"date":"2026-01-14","weight":187.2},{"date":"2026-01-15","weight":188.2},{"date":"2026-01-16","weight":191.3},{"date":"2026-01-17","weight":188.2},{"date":"2026-01-18","weight":187.4},{"date":"2026-01-19","weight":188.4},{"date":"2026-01-20","weight":188.6},{"date":"2026-01-21","weight":189.0},{"date":"2026-01-22","weight":190.2},{"date":"2026-01-23","weight":190.6},{"date":"2026-01-24","weight":189.0},{"date":"2026-01-26","weight":189.6},{"date":"2026-01-27","weight":189.0},{"date":"2026-01-28","weight":189.6},{"date":"2026-02-01","weight":191.2},{"date":"2026-02-02","weight":191.0},{"date":"2026-02-03","weight":192.0},{"date":"2026-02-04","weight":191.4},{"date":"2026-02-05","weight":191.0},{"date":"2026-02-09","weight":193.6},{"date":"2026-02-10","weight":189.3},{"date":"2026-02-16","weight":190.0},{"date":"2026-02-17","weight":189.4},{"date":"2026-02-23","weight":193.0},{"date":"2026-02-24","weight":192.6},{"date":"2026-02-25","weight":191.4},{"date":"2026-02-26","weight":194.0},{"date":"2026-02-28","weight":192.0},{"date":"2026-03-01","weight":191.6},{"date":"2026-03-02","weight":191.2},{"date":"2026-03-03","weight":191.6},{"date":"2026-03-04","weight":192.0},{"date":"2026-03-05","weight":190.0},{"date":"2026-03-06","weight":189.2},{"date":"2026-03-07","weight":187.0},{"date":"2026-03-08","weight":190.4}];
+  const existing = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+  const merged = [...seed];
+  for (const e of existing) {
+    if (!merged.find(x => x.date === e.date)) merged.push(e);
+  }
+  merged.sort((a,b) => a.date.localeCompare(b.date));
+  saveEntries(merged);
+  localStorage.setItem(SEED_KEY, '1');
+}
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// Init
+document.getElementById('inputDate').value = today();
+render();
+</script>
+</body>
+</html>
