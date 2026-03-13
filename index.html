@@ -711,6 +711,15 @@ function render() {
   }).join('');
 }
 
+function syncToSheets(date, weight) {
+  // Sync weight entry to Google Sheets via webhook
+  const scriptUrl = 'https://script.google.com/macros/d/YOUR_SCRIPT_ID/usercache/';
+  fetch(scriptUrl, {
+    method: 'POST',
+    body: JSON.stringify({ date: date, weight: weight }),
+  }).catch(() => {}); // Silent fail if no internet/script available
+}
+
 function logWeight() {
   const dateVal = document.getElementById('inputDate').value;
   const weightVal = parseFloat(document.getElementById('inputWeight').value);
@@ -728,6 +737,7 @@ function logWeight() {
   entries.sort((a,b) => a.date.localeCompare(b.date));
   saveEntries(entries);
   document.getElementById('inputWeight').value = '';
+  syncToSheets(dateVal, weightVal);
   render();
   showToast('✓ Logged ' + weightVal.toFixed(1) + ' lbs');
 }
