@@ -274,7 +274,7 @@
     <div class="stat-sub">lbs</div>
   </div>
   <div class="stat">
-    <div class="stat-label">Since Start</div>
+    <div class="stat-label" id="sinceLabel">Since Start</div>
     <div class="stat-value" id="statTotal">—</div>
     <div class="stat-sub" id="statTotalSub"></div>
   </div>
@@ -409,6 +409,22 @@ function movingAverage(entries, window) {
   });
 }
 
+function getRangeLabel(days) {
+  if (days === 0) return 'Since Start';
+  if (days === 7) return 'Since 7 days';
+  if (days === 14) return 'Since 14 days';
+  if (days === 30) return 'Since 30 days';
+  if (days === 90) return 'Since 3 months';
+  if (days === 180) return 'Since 6 months';
+  if (days === 365) return 'Since 1 year';
+  return 'Since Start';
+}
+
+function getRangeDays(days) {
+  if (days === 0) return 99999;
+  return days;
+}
+
 function calcStreak(entries) {
   if (!entries.length) return 0;
   const sorted = [...entries].sort((a,b) => b.date.localeCompare(a.date));
@@ -457,21 +473,35 @@ function render() {
   // Stats
   if (entries.length > 0) {
     const latest = entries[entries.length - 1].weight;
-    const first = entries[0].weight;
     const last7 = entries.slice(-7);
     const avg7 = Math.round(last7.reduce((s,e) => s + e.weight, 0) / last7.length * 10) / 10;
-    const totalChange = Math.round((latest - first) * 10) / 10;
 
     document.getElementById('statCurrent').textContent = latest.toFixed(1);
     document.getElementById('stat7day').textContent = avg7.toFixed(1);
 
+    // Dynamic "Since" based on current view
+    let rangeDays = getRangeDays(activeRange);
+    let sinceEntries = entries;
+    if (activeRange > 0) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - rangeDays);
+      const cutoffStr = cutoff.toISOString().split('T')[0];
+      sinceEntries = entries.filter(e => e.date >= cutoffStr);
+    }
+
+    const sinceChange = sinceEntries.length > 0 
+      ? Math.round((latest - sinceEntries[0].weight) * 10) / 10 
+      : 0;
+
+    document.getElementById('sinceLabel').textContent = getRangeLabel(activeRange);
     const totalEl = document.getElementById('statTotal');
-    totalEl.textContent = (totalChange >= 0 ? '+' : '') + totalChange.toFixed(1);
-    totalEl.className = 'stat-value ' + (totalChange < 0 ? 'down' : totalChange > 0 ? 'up' : 'flat');
-    document.getElementById('statTotalSub').textContent = 'lbs from start';
+    totalEl.textContent = (sinceChange >= 0 ? '+' : '') + sinceChange.toFixed(1);
+    totalEl.className = 'stat-value ' + (sinceChange < 0 ? 'down' : sinceChange > 0 ? 'up' : 'flat');
+    document.getElementById('statTotalSub').textContent = 'lbs';
 
     // Rate (lbs/week)
     if (entries.length >= 2) {
+      const first = entries[0].weight;
       const days = (new Date(entries[entries.length-1].date) - new Date(entries[0].date)) / 86400000;
       const weeks = days / 7 || 1;
       const rate = (latest - first) / weeks;
