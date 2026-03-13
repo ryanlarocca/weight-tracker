@@ -392,7 +392,11 @@ function saveGoal(g) {
 }
 
 function today() {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function formatDate(d) {
@@ -435,7 +439,7 @@ function calcStreak(entries) {
       streak++;
       const d = new Date(current);
       d.setDate(d.getDate() - 1);
-      current = d.toISOString().split('T')[0];
+      current = formatLocalDate(d);
     } else {
       break;
     }
@@ -443,14 +447,24 @@ function calcStreak(entries) {
   return streak;
 }
 
+function formatLocalDate(d) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function calcWeeklyAvg(entries, weeksAgo) {
   const now = new Date();
   const start = new Date(now);
+  // Go back to Sunday of the target week
   start.setDate(start.getDate() - (weeksAgo * 7) - now.getDay());
+  start.setHours(0, 0, 0, 0);
   const end = new Date(start);
   end.setDate(end.getDate() + 6);
-  const s = start.toISOString().split('T')[0];
-  const en = end.toISOString().split('T')[0];
+  // Use local date formatting instead of UTC
+  const s = formatLocalDate(start);
+  const en = formatLocalDate(end);
   const filtered = entries.filter(e => e.date >= s && e.date <= en);
   if (!filtered.length) return null;
   return Math.round(filtered.reduce((a,b) => a + b.weight, 0) / filtered.length * 10) / 10;
@@ -485,7 +499,7 @@ function render() {
     if (activeRange > 0) {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - rangeDays);
-      const cutoffStr = cutoff.toISOString().split('T')[0];
+      const cutoffStr = formatLocalDate(cutoff);
       sinceEntries = entries.filter(e => e.date >= cutoffStr);
     }
 
@@ -575,7 +589,7 @@ function render() {
   if (activeRange > 0) {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - activeRange);
-    const cutoffStr = cutoff.toISOString().split('T')[0];
+    const cutoffStr = formatLocalDate(cutoff);
     chartEntries = entries.filter(e => e.date >= cutoffStr);
   }
   const labels = chartEntries.map(e => formatDate(e.date));
