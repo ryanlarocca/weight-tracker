@@ -597,6 +597,16 @@ function render() {
   const avg = movingAverage(chartEntries, 7);
   const avg30 = movingAverage(chartEntries, 30);
 
+  // Dynamic Y-axis: tight bounds around the visible data range
+  const allVisible = [...weights, ...avg.filter(v => v !== null)];
+  if (goal) allVisible.push(goal);
+  const dataMin = allVisible.length ? Math.min(...allVisible) : 150;
+  const dataMax = allVisible.length ? Math.max(...allVisible) : 250;
+  const dataSpan = dataMax - dataMin;
+  const yBuffer = Math.max(1, dataSpan * 0.15);
+  const yMin = Math.floor(dataMin - yBuffer);
+  const yMax = Math.ceil(dataMax + yBuffer);
+
   const ctx = document.getElementById('weightChart').getContext('2d');
   if (chart) chart.destroy();
 
@@ -676,6 +686,8 @@ function render() {
           border: { color: 'transparent' }
         },
         y: {
+          min: yMin,
+          max: yMax,
           ticks: { color: '#8888aa', font: { size: 11 } },
           grid: { color: 'rgba(255,255,255,0.05)' },
           border: { color: 'transparent' },
